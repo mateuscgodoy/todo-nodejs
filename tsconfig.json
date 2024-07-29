@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES6", // NEW
-    "module": "CommonJS", // NEW
-    // "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "sourceMap": true, // NEW
+    "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist"
   },

@@ -3,7 +3,7 @@ import path from 'path';
 import todoEmitter from '../lib/eventEmitter.js';
 import { Todo } from '../core/index.js';
 
-const filePath = path.join(__dirname, 'todos.txt');
+const filePath = path.join(import.meta.dirname, 'todos.txt');
 
 const saveTodosToFile = async (todos: Todo[]) => {
   await fs.writeFile(filePath, JSON.stringify(todos, null, 2));
