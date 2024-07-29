@@ -1,5 +1,4 @@
-import todoEmitter from '../lib/eventEmitter.js';
-import { findTodoById } from '../file/index.js';
+import { findTodoById } from '../data/index.js';
 
 export type Todo = {
   id: number;
