@@ -5,9 +5,11 @@
   "description": "A To-Do app built in Node.js.",
   "main": "index.js",
   "scripts": {
-    "test": "tsx test/core.ts",
+    "test": "npm run build:test && node --test",
     "start": "npm run build && node dist/index.js",
-    "build": "tsc",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "build:src": "tsc -p tsconfig.json",
+    "build:test": "tsc -p tsconfig.test.json",
     "dev": "tsx src/index.ts"
   },
   "keywords": [
