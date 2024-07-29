@@ -6,11 +6,10 @@
   "main": "index.js",
   "scripts": {
     "test": "npm run build:test && node --test",
-    "start": "npm run build && node dist/index.js",
+    "start": "npm run build:src && node dist/src/index.js",
     "build": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
     "build:src": "tsc -p tsconfig.json",
-    "build:test": "tsc -p tsconfig.test.json",
-    "dev": "tsx src/index.ts"
+    "build:test": "tsc -p tsconfig.test.json"
   },
   "keywords": [
     "Node.js"

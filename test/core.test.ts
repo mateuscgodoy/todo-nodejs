@@ -4,7 +4,7 @@ import { describe, test } from "node:test";
 
 const { validateToDoText } = todoValidation;
 
-describe("Input Validation Functions", () => {
+describe("validateToDoText Tests", () => {
   describe("To-Do text func", () => {
     test("Returns true with a valid input", () => {
       assert.strictEqual(validateToDoText("A valid to-do!"), true);
