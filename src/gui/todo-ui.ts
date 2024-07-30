@@ -1,7 +1,7 @@
 import { input } from "@inquirer/prompts";
 import { todoValidation } from "../core/index.js";
 import todoEmitter from "../lib/eventEmitter.js";
-import { Todo } from "../core/index.js";
+import { Todo } from "../models/todo.js";
 
 const addTodo = async () => {
   const task = await input({
