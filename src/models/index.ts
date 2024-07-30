@@ -1,36 +1,15 @@
-import fs from "fs/promises";
-import path from "path";
+import path from "node:path";
 import todoEmitter from "../lib/eventEmitter.js";
 import { Todo } from "./todo.js";
 import { TodoFileHandler } from "./todoFileHandler.js";
 
 let fileHandler: TodoFileHandler;
-// const filePath = path.join(import.meta.dirname, "todos.txt");
-
-// const saveTodosToFile = async (todos: Todo[]) => {
-//   const serializedTodos = todos.map((td) => td.serialize());
-//   await fs.writeFile(filePath, JSON.stringify(serializedTodos, null, 2));
-// };
-
-// const readTodosFromFile = async (): Promise<Todo[]> => {
-//   let data;
-//   try {
-//     data = await fs.readFile(filePath, "utf8");
-//   } catch (error: any) {
-//     if (error.code === "ENOENT") {
-//       console.log("File does not exist yet.");
-//     } else {
-//       throw error;
-//     }
-//   } finally {
-//     if (!data) return [];
-
-//     const todos: Todo[] = JSON.parse(data);
-//     return todos.map((td) => Todo.parse(td));
-//   }
-// };
 
 /**
+ * This is the callback that will be passed to validateNewTodo
+ * I added it here just for internal design and it should be remove as soon as the 
+ * implementation of the validator function is finished.
+ * 
  (error: string | null, isValid: boolean) => {
     if (error || !isValid) {
       resolve(
@@ -62,14 +41,11 @@ export const validateNewTodo = async (
 };
 
 todoEmitter.on("start", async () => {
-  const filePath = path.join(import.meta.dirname, "todos.txt");
   try {
-    await (await fs.open(filePath)).close();
-  } catch (error: any) {
-    if (error.code === "ENOENT") await fs.writeFile(filePath, "");
-    else throw error;
-  } finally {
-    fileHandler = new TodoFileHandler(filePath);
+    const filePath = path.join(import.meta.dirname, "todos.txt");
+    fileHandler = await TodoFileHandler.create(filePath);
+  } catch (error) {
+    throw error;
   }
 });
 
