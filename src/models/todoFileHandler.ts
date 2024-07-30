@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { Todo } from "./todo.js";
+import { Todo, TodoDTO } from "./todo.js";
 
 export default class TodoFileHandler {
   private _filePath: string;
@@ -45,7 +45,7 @@ export default class TodoFileHandler {
     } finally {
       if (!data) return [];
 
-      const todos: Todo[] = JSON.parse(data);
+      const todos: TodoDTO[] = JSON.parse(data);
       return todos.map((td) => Todo.parse(td));
     }
   }

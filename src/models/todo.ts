@@ -1,4 +1,4 @@
-type TodoDTO = {
+export type TodoDTO = {
   id: number;
   task: string;
   completed: boolean;
@@ -31,7 +31,7 @@ export class Todo {
     this._completed = value;
   }
 
-  public display(): string {
+  public toString(): string {
     return `ID: ${this.id} - ${this._task} - ${
       this.completed ? "[✅ COMPLETED]" : "❌"
     }`;
@@ -45,11 +45,7 @@ export class Todo {
     };
   }
 
-  public static parse(json: {
-    id: number;
-    task: string;
-    completed: boolean;
-  }): Todo {
-    return new Todo(json.task, json.id, json.completed);
+  public static parse(todoDTO: TodoDTO): Todo {
+    return new Todo(todoDTO.task, todoDTO.id, todoDTO.completed);
   }
 }
