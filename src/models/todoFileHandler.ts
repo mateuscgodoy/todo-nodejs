@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import { Todo } from "./todo.js";
 
-export class TodoFileHandler {
+export default class TodoFileHandler {
   private _filePath: string;
 
   private constructor(filePath: string) {

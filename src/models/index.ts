@@ -1,7 +1,7 @@
 import path from "node:path";
 import todoEmitter from "../lib/eventEmitter.js";
 import { Todo } from "./todo.js";
-import { TodoFileHandler } from "./todoFileHandler.js";
+import TodoFileHandler from "./todoFileHandler.js";
 
 let fileHandler: TodoFileHandler;
 
@@ -58,7 +58,7 @@ todoEmitter.on("todoAdded", async (todo: Todo) => {
 
 todoEmitter.on("todoCompleted", async (id: number) => {
   const todos = await fileHandler.readTodos();
-  const index = todos.findIndex((td) => td.id === id);
+  const index = todos.findIndex((td: Todo) => td.id === id);
   if (index === -1)
     throw new Error("Error: To-Do not found operation aborted.");
   todos[index].completed = true;
