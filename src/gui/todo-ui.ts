@@ -46,7 +46,7 @@ export const getIdAsync = async (message?: string) => {
 
 const printTodos = (todos: Todo[]) => {
   for (const todo of todos) {
-    console.log(todo.display());
+    console.log(todo.toString());
   }
 };
 
