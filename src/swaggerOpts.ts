@@ -29,7 +29,7 @@ const options = {
       },
     },
   },
-  apis: ['./src/index.ts'],
+  apis: ['./src/todoRouter.ts'],
 };
 
 export default swaggerJSDoc(options);
