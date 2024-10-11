@@ -23,6 +23,7 @@ export default class TodoRouter {
     this.db = db;
     this.setPostTodo();
     this.setGetAllTodos();
+    this.setGetTodoById();
   }
 
   public get router() {
@@ -150,6 +151,52 @@ export default class TodoRouter {
         }));
         res.json(todos);
       });
+    });
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   get:
+   *     summary: Get a todo item by ID
+   *     tags:
+   *       - Todos
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         description: ID of the todo item
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: A todo item
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Todo'
+   *       404:
+   *         description: Todo item not found
+   */
+  private setGetTodoById() {
+    this.router.get('/:id', (req, res) => {
+      const id = req.params.id;
+      this.db.get(
+        'SELECT * FROM todos WHERE id = ?',
+        [id],
+        (err, data: TodoDBM) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+
+          if (!data) {
+            return res.status(404).json({ error: 'Todo item not found' });
+          }
+
+          const todo = { ...data, done: !!data.done };
+          res.json(todo);
+        }
+      );
     });
   }
 }
