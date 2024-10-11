@@ -25,6 +25,7 @@ export default class TodoRouter {
     this.setGetAllTodos();
     this.setGetTodoById();
     this.setUpdateTodo();
+    this.setDeleteTodo();
   }
 
   public get router() {
@@ -241,27 +242,24 @@ export default class TodoRouter {
   private setUpdateTodo() {
     this.router.patch('/:id', (req, res) => {
       const id = req.params.id;
-      // Extract the Todo from the DB
       this.db.get(
         'SELECT * FROM todos WHERE id = ?',
         [id],
         (err, data: TodoDBM) => {
-          // If something goes wrong with the DB, return 500
           if (err) {
             return res.status(500).json({ error: err.message });
           }
-          // If it does not exist return 404
           if (!data) {
             return res.status(404).json({ error: 'Todo item not found' });
           }
-          // Validate the body content, return 400 if invalid
+
           let todo: Todo = { ...data, done: !!data.done };
           const { title, assignedTo, done } = req.body;
+
           todo.title = title ?? todo.title;
           todo.assignedTo = assignedTo ?? todo.assignedTo;
           todo.done = done ?? todo.done;
 
-          // Update the Todo and save the modification back to the DB
           this.db.run(
             'UPDATE todos SET title = ?, assignedTo = ?, done = ? WHERE id = ?',
             [todo.title, todo.assignedTo, Number(todo.done), id],
@@ -275,6 +273,43 @@ export default class TodoRouter {
           );
         }
       );
+    });
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   delete:
+   *     summary: Delete a todo item
+   *     tags:
+   *       - Todos
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         description: ID of the todo item
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       204:
+   *         description: Todo item deleted successfully
+   *       404:
+   *         description: Todo item not found
+   */
+  private setDeleteTodo() {
+    this.router.delete('/:id', (req, res) => {
+      const id = req.params.id;
+      this.db.run('DELETE FROM todos WHERE id = ?', [id], function (err) {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'Todo item not found' });
+        }
+
+        res.status(204).send();
+      });
     });
   }
 }
