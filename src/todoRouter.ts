@@ -23,6 +23,9 @@ export default class TodoRouter {
     this.db = db;
     this.setPostTodo();
     this.setGetAllTodos();
+    this.setGetTodoById();
+    this.setUpdateTodo();
+    this.setDeleteTodo();
   }
 
   public get router() {
@@ -149,6 +152,163 @@ export default class TodoRouter {
           done: !!row.done,
         }));
         res.json(todos);
+      });
+    });
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   get:
+   *     summary: Get a todo item by ID
+   *     tags:
+   *       - Todos
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         description: ID of the todo item
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       200:
+   *         description: A todo item
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Todo'
+   *       404:
+   *         description: Todo item not found
+   */
+  private setGetTodoById() {
+    this.router.get('/:id', (req, res) => {
+      const id = req.params.id;
+      this.db.get(
+        'SELECT * FROM todos WHERE id = ?',
+        [id],
+        (err, data: TodoDBM) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+
+          if (!data) {
+            return res.status(404).json({ error: 'Todo item not found' });
+          }
+
+          const todo = { ...data, done: !!data.done };
+          res.json(todo);
+        }
+      );
+    });
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   patch:
+   *     summary: Update a todo item
+   *     tags:
+   *       - Todos
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         description: ID of the todo item
+   *         schema:
+   *           type: integer
+   *     requestBody:
+   *       description: Fields to update
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               title:
+   *                 type: string
+   *               assignedTo:
+   *                 type: string
+   *               done:
+   *                 type: boolean
+   *     responses:
+   *       200:
+   *         description: Todo item updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Todo'
+   *       404:
+   *         description: Todo item not found
+   */
+  private setUpdateTodo() {
+    this.router.patch('/:id', (req, res) => {
+      const id = req.params.id;
+      this.db.get(
+        'SELECT * FROM todos WHERE id = ?',
+        [id],
+        (err, data: TodoDBM) => {
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          if (!data) {
+            return res.status(404).json({ error: 'Todo item not found' });
+          }
+
+          let todo: Todo = { ...data, done: !!data.done };
+          const { title, assignedTo, done } = req.body;
+
+          todo.title = title ?? todo.title;
+          todo.assignedTo = assignedTo ?? todo.assignedTo;
+          todo.done = done ?? todo.done;
+
+          this.db.run(
+            'UPDATE todos SET title = ?, assignedTo = ?, done = ? WHERE id = ?',
+            [todo.title, todo.assignedTo, Number(todo.done), id],
+            (err) => {
+              if (err) {
+                return res.status(500).json({ error: err.message });
+              }
+
+              res.json({ ...todo, id });
+            }
+          );
+        }
+      );
+    });
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   delete:
+   *     summary: Delete a todo item
+   *     tags:
+   *       - Todos
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         description: ID of the todo item
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       204:
+   *         description: Todo item deleted successfully
+   *       404:
+   *         description: Todo item not found
+   */
+  private setDeleteTodo() {
+    this.router.delete('/:id', (req, res) => {
+      const id = req.params.id;
+      this.db.run('DELETE FROM todos WHERE id = ?', [id], function (err) {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'Todo item not found' });
+        }
+
+        res.status(204).send();
       });
     });
   }
