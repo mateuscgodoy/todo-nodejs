@@ -24,6 +24,7 @@ export default class TodoRouter {
     this.setPostTodo();
     this.setGetAllTodos();
     this.setGetTodoById();
+    this.setUpdateTodo();
   }
 
   public get router() {
@@ -195,6 +196,83 @@ export default class TodoRouter {
 
           const todo = { ...data, done: !!data.done };
           res.json(todo);
+        }
+      );
+    });
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   patch:
+   *     summary: Update a todo item
+   *     tags:
+   *       - Todos
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         description: ID of the todo item
+   *         schema:
+   *           type: integer
+   *     requestBody:
+   *       description: Fields to update
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               title:
+   *                 type: string
+   *               assignedTo:
+   *                 type: string
+   *               done:
+   *                 type: boolean
+   *     responses:
+   *       200:
+   *         description: Todo item updated successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Todo'
+   *       404:
+   *         description: Todo item not found
+   */
+  private setUpdateTodo() {
+    this.router.patch('/:id', (req, res) => {
+      const id = req.params.id;
+      // Extract the Todo from the DB
+      this.db.get(
+        'SELECT * FROM todos WHERE id = ?',
+        [id],
+        (err, data: TodoDBM) => {
+          // If something goes wrong with the DB, return 500
+          if (err) {
+            return res.status(500).json({ error: err.message });
+          }
+          // If it does not exist return 404
+          if (!data) {
+            return res.status(404).json({ error: 'Todo item not found' });
+          }
+          // Validate the body content, return 400 if invalid
+          let todo: Todo = { ...data, done: !!data.done };
+          const { title, assignedTo, done } = req.body;
+          todo.title = title ?? todo.title;
+          todo.assignedTo = assignedTo ?? todo.assignedTo;
+          todo.done = done ?? todo.done;
+
+          // Update the Todo and save the modification back to the DB
+          this.db.run(
+            'UPDATE todos SET title = ?, assignedTo = ?, done = ? WHERE id = ?',
+            [todo.title, todo.assignedTo, Number(todo.done), id],
+            (err) => {
+              if (err) {
+                return res.status(500).json({ error: err.message });
+              }
+
+              res.json({ ...todo, id });
+            }
+          );
         }
       );
     });
