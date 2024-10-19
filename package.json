@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc && node ./dist/index.js",
-    "dev": "tsx --watch ./src/index.ts"
+    "dev": "tsx --watch ./src/index.ts",
+    "test": "NODE_ENV='test' tsx --no-warnings=ExperimentalWarnings --test './src/**/*.test.*'"
   },
   "keywords": [
     "Express",
@@ -19,8 +20,11 @@
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/supertest": "^6.0.2",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.6",
+    "supertest": "^7.0.0",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3"
   },
@@ -30,5 +34,8 @@
     "sqlite3": "^5.1.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
