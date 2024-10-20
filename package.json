@@ -5,9 +5,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && node --experimental-sqlite ./dist/index.js",
+    "build": "tsc && node --experimental-sqlite --no-warnings=ExperimentalWarnings ./dist/index.js",
     "dev": "tsx --watch ./src/index.ts",
-    "test": "NODE_ENV='test' tsx --no-warnings=ExperimentalWarnings --test './src/**/*.test.*'"
+    "test": "NODE_ENV='test' tsx --experimental-sqlite --no-warnings=ExperimentalWarnings --test './src/**/*.test.*'"
   },
   "keywords": [
     "Express",
