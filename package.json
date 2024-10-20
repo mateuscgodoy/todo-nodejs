@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && node ./dist/index.js",
+    "build": "tsc && node --experimental-sqlite ./dist/index.js",
     "dev": "tsx --watch ./src/index.ts",
     "test": "NODE_ENV='test' tsx --no-warnings=ExperimentalWarnings --test './src/**/*.test.*'"
   },
@@ -36,6 +36,6 @@
     "swagger-ui-express": "^5.0.1"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   }
 }
