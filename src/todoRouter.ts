@@ -1,95 +1,77 @@
-import express from 'express';
-import sqlite from 'sqlite3';
+import express, { Request, Response } from 'express';
 
-type Todo = {
-  id: number;
-  title: string;
-  assignedTo: string;
-  done: boolean;
-};
-
-type TodoDBM = {
-  id: number;
-  title: string;
-  assignedTo: string;
-  done: number;
-};
+import QueryDatabase from './queryDatabase.js';
 
 export default class TodoRouter {
   private _router = express.Router();
-  private db: sqlite.Database;
+  private db: QueryDatabase;
 
-  constructor(db: sqlite.Database) {
+  constructor(db: QueryDatabase) {
     this.db = db;
-    this.setPostTodo();
-    this.setGetAllTodos();
-    this.setGetTodoById();
-    this.setUpdateTodo();
-    this.setDeleteTodo();
+    this._router.post('', this.postTodoRoute.bind(this));
+    this._router.get('', this.getAllTodosRoute.bind(this));
   }
 
-  public get router() {
+  get router() {
     return this._router;
   }
 
   /**
    * @swagger
-   * tags:
-   *   - name: Todos
-   *     description: API for managing todo items
+   * /todos:
+   *   post:
+   *     summary: Create a new Todo
+   *     description: Add a new Todo item to the list.
+   *     tags: [Todos]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               title:
+   *                 type: string
+   *                 description: The title of the Todo
+   *                 example: "Fix the router"
+   *               assignedTo:
+   *                 type: string
+   *                 description: The person assigned to the task
+   *                 example: "John Doe"
+   *     responses:
+   *       201:
+   *         description: Todo created successfully
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                 todo:
+   *                   $ref: '#/components/schemas/Todo'
+   *       400:
+   *         description: Invalid input
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
    */
+  postTodoRoute(req: Request, res: Response) {
+    const { title, assignedTo } = req.body;
+    if (!title || !assignedTo) {
+      return res
+        .status(400)
+        .send({ message: 'Please provide a title and an assigned person' });
+    }
 
-  private setPostTodo() {
-    /**
-     *
-     * @swagger
-     * /todos:
-     *   post:
-     *     summary: Create a new todo item
-     *     tags:
-     *       - Todos
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         application/json:
-     *           schema:
-     *             type: object
-     *             required:
-     *               - title
-     *               - assignedTo
-     *             properties:
-     *               title:
-     *                 type: string
-     *               assignedTo:
-     *                 type: string
-     *     responses:
-     *       201:
-     *         description: Todo item created successfully
-     *         content:
-     *           application/json:
-     *             schema:
-     *               $ref: '#/components/schemas/Todo'
-     */
-    this.router.post('', (req, res) => {
-      const { title, assignedTo } = req.body;
-      if (!title || !assignedTo) {
-        return res
-          .status(400)
-          .json({ error: 'Title and AssignedTo are required' });
-      }
-      const done = 0;
-      this.db.run(
-        'INSERT INTO todos (title, assignedTo, done) VALUES (?, ?, ?)',
-        [title, assignedTo, done],
-        function (err) {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
-          const id = this.lastID;
-          res.status(201).json({ id, title, assignedTo, done: false });
-        }
-      );
-    });
+    this.db.insertTodo({ title, assignedTo });
+    res
+      .status(201)
+      .send({ message: 'Todo created with success', title, assignedTo });
   }
 
   /**
@@ -122,194 +104,8 @@ export default class TodoRouter {
    *               items:
    *                 $ref: '#/components/schemas/Todo'
    */
-  private setGetAllTodos() {
-    this.router.get('', (req, res) => {
-      /**
-       * WHERE clause added so further filtering parameters can be
-       * simply added to the end of the query, in a way that it does
-       * not matter if there is 0, 1 or more filters applied! 👏
-       */
-      let query = 'SELECT * FROM todos WHERE 1=1';
-      const { title, assignedTo } = req.query;
-      const params: any[] = [];
-
-      if (title) {
-        query += ' AND title LIKE ?';
-        params.push(`%${title}%`);
-      }
-      if (assignedTo) {
-        query += ' AND assignedTo LIKE ?';
-        params.push(`%${assignedTo}%`);
-      }
-
-      this.db.all(query, params, (err: Error | null, rows: TodoDBM[]) => {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
-
-        const todos: Todo[] = rows.map((row: TodoDBM) => ({
-          ...row,
-          done: !!row.done,
-        }));
-        res.json(todos);
-      });
-    });
-  }
-
-  /**
-   * @swagger
-   * /todos/{id}:
-   *   get:
-   *     summary: Get a todo item by ID
-   *     tags:
-   *       - Todos
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         description: ID of the todo item
-   *         schema:
-   *           type: integer
-   *     responses:
-   *       200:
-   *         description: A todo item
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Todo'
-   *       404:
-   *         description: Todo item not found
-   */
-  private setGetTodoById() {
-    this.router.get('/:id', (req, res) => {
-      const id = req.params.id;
-      this.db.get(
-        'SELECT * FROM todos WHERE id = ?',
-        [id],
-        (err, data: TodoDBM) => {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
-
-          if (!data) {
-            return res.status(404).json({ error: 'Todo item not found' });
-          }
-
-          const todo = { ...data, done: !!data.done };
-          res.json(todo);
-        }
-      );
-    });
-  }
-
-  /**
-   * @swagger
-   * /todos/{id}:
-   *   patch:
-   *     summary: Update a todo item
-   *     tags:
-   *       - Todos
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         description: ID of the todo item
-   *         schema:
-   *           type: integer
-   *     requestBody:
-   *       description: Fields to update
-   *       content:
-   *         application/json:
-   *           schema:
-   *             type: object
-   *             properties:
-   *               title:
-   *                 type: string
-   *               assignedTo:
-   *                 type: string
-   *               done:
-   *                 type: boolean
-   *     responses:
-   *       200:
-   *         description: Todo item updated successfully
-   *         content:
-   *           application/json:
-   *             schema:
-   *               $ref: '#/components/schemas/Todo'
-   *       404:
-   *         description: Todo item not found
-   */
-  private setUpdateTodo() {
-    this.router.patch('/:id', (req, res) => {
-      const id = req.params.id;
-      this.db.get(
-        'SELECT * FROM todos WHERE id = ?',
-        [id],
-        (err, data: TodoDBM) => {
-          if (err) {
-            return res.status(500).json({ error: err.message });
-          }
-          if (!data) {
-            return res.status(404).json({ error: 'Todo item not found' });
-          }
-
-          let todo: Todo = { ...data, done: !!data.done };
-          const { title, assignedTo, done } = req.body;
-
-          todo.title = title ?? todo.title;
-          todo.assignedTo = assignedTo ?? todo.assignedTo;
-          todo.done = done ?? todo.done;
-
-          this.db.run(
-            'UPDATE todos SET title = ?, assignedTo = ?, done = ? WHERE id = ?',
-            [todo.title, todo.assignedTo, Number(todo.done), id],
-            (err) => {
-              if (err) {
-                return res.status(500).json({ error: err.message });
-              }
-
-              res.json({ ...todo, id });
-            }
-          );
-        }
-      );
-    });
-  }
-
-  /**
-   * @swagger
-   * /todos/{id}:
-   *   delete:
-   *     summary: Delete a todo item
-   *     tags:
-   *       - Todos
-   *     parameters:
-   *       - in: path
-   *         name: id
-   *         required: true
-   *         description: ID of the todo item
-   *         schema:
-   *           type: integer
-   *     responses:
-   *       204:
-   *         description: Todo item deleted successfully
-   *       404:
-   *         description: Todo item not found
-   */
-  private setDeleteTodo() {
-    this.router.delete('/:id', (req, res) => {
-      const id = req.params.id;
-      this.db.run('DELETE FROM todos WHERE id = ?', [id], function (err) {
-        if (err) {
-          return res.status(500).json({ error: err.message });
-        }
-
-        if (this.changes === 0) {
-          return res.status(404).json({ error: 'Todo item not found' });
-        }
-
-        res.status(204).send();
-      });
-    });
+  getAllTodosRoute(req: Request, res: Response) {
+    const todos = this.db.getAllTodos();
+    res.status(200).send(todos);
   }
 }

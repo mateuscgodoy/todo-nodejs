@@ -4,18 +4,17 @@ import cors from 'cors';
 
 import swaggerOpts from './swaggerOpts.js';
 import TodoRouter from './todoRouter.js';
-import TodoDB from './db.js';
+import QueryDatabase from './queryDatabase.js';
 
 const PORT = 3000;
 const DB_PATH = './todos.db';
-const db = new TodoDB(DB_PATH);
+const db = new QueryDatabase(DB_PATH);
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerOpts));
 
-const todoRouter = new TodoRouter(db.instance);
+const todoRouter = new TodoRouter(db);
 app.use('/todos', todoRouter.router);
 
 app.listen(PORT, () => {
