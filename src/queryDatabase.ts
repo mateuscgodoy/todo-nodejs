@@ -1,18 +1,22 @@
-import { DatabaseSync, StatementSync } from 'node:sqlite';
+import {
+  DatabaseSync,
+  StatementResultingChanges,
+  StatementSync,
+} from 'node:sqlite';
 
-type InputTodo = {
+export type InputTodo = {
   title: string;
   assignedTo: string;
 };
 
-type Todo = {
+export type Todo = {
   id: number;
   title: string;
   assignedTo: string;
   done: boolean;
 };
 
-type TodoDBM = {
+export type TodoDBM = {
   id: number;
   title: string;
   assignedTo: string;
@@ -32,25 +36,50 @@ export default class QueryDatabase {
         )`);
   }
 
-  insertTodo(todo: InputTodo, statement?: StatementSync): void {
+  insertTodo(
+    todo: InputTodo,
+    statement?: StatementSync
+  ): StatementResultingChanges {
+    if (!todo || !todo.title || !todo.assignedTo) {
+      throw new DatabaseError(
+        `Error: Todo with Title=${todo.title}, Assigned To=${todo.assignedTo} is invalid`
+      );
+    }
+
     if (statement) {
-      statement.run(todo.title, todo.assignedTo);
-      return;
+      return statement.run(todo.title, todo.assignedTo);
     }
 
     const insertStatement = this.instance.prepare(
       'INSERT INTO todos (title, assignedTo, done) VALUES (?, ?, 0);'
     );
-    insertStatement.run(todo.title, todo.assignedTo);
+    return insertStatement.run(todo.title, todo.assignedTo);
   }
 
-  insertTodos(todos: InputTodo[]) {
+  insertTodos(
+    todos: InputTodo[]
+  ): (DatabaseError | StatementResultingChanges)[] {
     const statement = this.instance
       .prepare(`INSERT INTO todos (title, assignedTo, done) VALUES
             (?, ?, 0);`);
+
+    const results = [];
+    let result: StatementResultingChanges | DatabaseError | null = null;
     for (const todo of todos) {
-      statement.run(todo.title, todo.assignedTo);
+      try {
+        result = this.insertTodo(todo, statement);
+      } catch (error) {
+        if (error instanceof DatabaseError) {
+          result = error;
+        }
+      } finally {
+        if (result) {
+          results.push(result);
+          result = null;
+        }
+      }
     }
+    return results;
   }
 
   getAllTodos() {
@@ -65,5 +94,23 @@ export default class QueryDatabase {
     return todos;
   }
 
-  getTodoById() {}
+  getTodoById(id: number): Todo | DatabaseError {
+    const getStatement = this.instance.prepare(
+      `SELECT * FROM todos WHERE id=?`
+    );
+    const todoDBM = getStatement.get(id) as TodoDBM | undefined;
+    if (!todoDBM) {
+      throw new DatabaseError(
+        'Error: there is no Todo that matches the provided ID'
+      );
+    }
+    const todo: Todo = { ...todoDBM, done: !!todoDBM };
+    return todo;
+  }
+}
+
+export class DatabaseError extends Error {
+  constructor(message: string) {
+    super(message);
+  }
 }
