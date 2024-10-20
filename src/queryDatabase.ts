@@ -41,8 +41,9 @@ export default class QueryDatabase {
     statement?: StatementSync
   ): StatementResultingChanges {
     if (!todo || !todo.title || !todo.assignedTo) {
-      throw new DatabaseError(
-        `Error: Todo with Title=${todo.title}, Assigned To=${todo.assignedTo} is invalid`
+      throw new DatabaseError<InputTodo>(
+        'Error: the Todo provided is invalid',
+        todo
       );
     }
 
@@ -56,26 +57,18 @@ export default class QueryDatabase {
     return insertStatement.run(todo.title, todo.assignedTo);
   }
 
-  insertTodos(
-    todos: InputTodo[]
-  ): (DatabaseError | StatementResultingChanges)[] {
+  insertTodos(todos: InputTodo[]): DatabaseError[] {
     const statement = this.instance
       .prepare(`INSERT INTO todos (title, assignedTo, done) VALUES
             (?, ?, 0);`);
 
     const results = [];
-    let result: StatementResultingChanges | DatabaseError | null = null;
     for (const todo of todos) {
       try {
-        result = this.insertTodo(todo, statement);
+        this.insertTodo(todo, statement);
       } catch (error) {
         if (error instanceof DatabaseError) {
-          result = error;
-        }
-      } finally {
-        if (result) {
-          results.push(result);
-          result = null;
+          results.push(error);
         }
       }
     }
@@ -99,9 +92,10 @@ export default class QueryDatabase {
       `SELECT * FROM todos WHERE id=?`
     );
     const todoDBM = getStatement.get(id) as TodoDBM | undefined;
-    if (!todoDBM) {
-      throw new DatabaseError(
-        'Error: there is no Todo that matches the provided ID'
+    if (!todoDBM || !todoDBM.id) {
+      throw new DatabaseError<number>(
+        'Error: there is no Todo that matches the provided ID',
+        id
       );
     }
     const todo: Todo = { ...todoDBM, done: !!todoDBM };
@@ -109,8 +103,15 @@ export default class QueryDatabase {
   }
 }
 
-export class DatabaseError extends Error {
-  constructor(message: string) {
+export class DatabaseError<T = unknown> extends Error {
+  private _input: T;
+
+  constructor(message: string, input?: T) {
     super(message);
+    this._input = input as T;
+  }
+
+  public get input(): T {
+    return this._input;
   }
 }
