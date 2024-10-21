@@ -1,4 +1,4 @@
-import { beforeEach, describe, it } from 'node:test';
+import { before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert';
 
 import QueryDatabase, { DatabaseError, Todo } from '../queryDatabase.js';
@@ -70,46 +70,44 @@ describe('QueryDatabase class', () => {
 
   describe('getAllTodos tests', () => {
     it('get an empty array if there is no Todo', () => {
-      const todos = db.getAllTodos();
+      const todos = db.getTodos();
       assert.equal(todos.length, 0);
     });
 
-    it('get all Todos from the Database', () => {
+    describe('add default todo data to the database', () => {
       const todos = [
-        { title: 'My valid todo 1', assignedTo: 'Bobby' },
-        { title: 'My valid todo 2', assignedTo: 'Susan' },
-        { title: 'My valid todo 3', assignedTo: 'Merry' },
+        { title: 'Buy milk', assignedTo: 'Bobby' },
+        { title: 'Buy some eggs', assignedTo: 'Bobby' },
+        { title: 'Call mom', assignedTo: 'Me' },
       ];
-      db.insertTodos(todos);
+      beforeEach(() => {
+        db.insertTodos(todos);
+      });
 
-      const getTodos = db.getAllTodos();
-      assert.equal(getTodos.length, 3);
-    });
-  });
+      it('get all Todos from the Database', () => {
+        const getTodos = db.getTodos();
+        assert.equal(getTodos.length, 3);
+      });
 
-  describe('getTodoById tests', () => {
-    it('get a Todo by its ID if the Todo exists', () => {
-      const data = {
-        title: 'My first todo',
-        assignedTo: 'Bobby',
-      };
+      it('correctly filters Todos by title', () => {
+        const getTodos = db.getTodos({ title: 'Buy' });
+        assert.equal(getTodos.length, 2);
+      });
 
-      const { lastInsertRowid } = db.insertTodo(data);
-      const todo = db.getTodoById(Number(lastInsertRowid)) as Todo;
+      it('correctly filters Todos by assignedTo', () => {
+        const bobbyTodos = db.getTodos({ assignedTo: 'Bobby' });
+        assert.equal(bobbyTodos.length, 2);
+      });
 
-      assert(todo);
-      assert.equal(todo.title, data.title);
-    });
+      it('correctly gets an Todo by providing a valid ID', () => {
+        const todo = db.getTodos({ id: 2 })[0];
+        assert.equal(todo.title, 'Buy some eggs');
+      });
 
-    it('throws a DatabaseError if the id does not exist', () => {
-      assert.throws(
-        () => {
-          const res = db.getTodoById(-1);
-          console.log(res);
-        },
-        DatabaseError,
-        'Error: there is no Todo that matches the provided ID'
-      );
+      it('correctly returns undefined for unknown IDs', () => {
+        const todo = db.getTodos({ id: -1 })[0];
+        assert.equal(todo, undefined);
+      });
     });
   });
 });
