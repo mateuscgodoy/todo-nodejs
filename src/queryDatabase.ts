@@ -4,6 +4,14 @@ import {
   StatementSync,
 } from 'node:sqlite';
 
+export type QueryTodo = {
+  title?: string;
+  assignedTo?: string;
+  id?: number;
+  limit?: number;
+  offset?: number;
+};
+
 export type InputTodo = {
   title: string;
   assignedTo: string;
@@ -75,31 +83,34 @@ export default class QueryDatabase {
     return results;
   }
 
-  getAllTodos() {
-    const getStatement = this.instance.prepare(`SELECT * FROM todos;`);
-    const dBMTodos = getStatement.all() as TodoDBM[];
-    const todos = dBMTodos.map((todo) => {
+  getTodos(
+    filters: QueryTodo = { title: '', assignedTo: '', limit: 10, offset: 0 }
+  ) {
+    let sql = 'SELECT * FROM todos WHERE 1=1';
+    const { title, assignedTo } = filters;
+    const params = [];
+    if (title) {
+      sql += ' AND title LIKE ?';
+      params.push(`%${title}%`);
+    }
+    if (assignedTo) {
+      sql += ' AND assignedTo LIKE ?';
+      params.push(`%${assignedTo}%`);
+    }
+    if (filters.id) {
+      sql += ' AND id=?';
+      params.push(filters.id);
+    }
+    const getStatement = this.instance.prepare(sql);
+    const dbmTodos = getStatement.all(...params) as TodoDBM[];
+
+    const todos = dbmTodos.map((todo) => {
       return {
         ...todo,
         done: !!todo.done,
       };
     }) as Todo[];
     return todos;
-  }
-
-  getTodoById(id: number): Todo | DatabaseError {
-    const getStatement = this.instance.prepare(
-      `SELECT * FROM todos WHERE id=?`
-    );
-    const todoDBM = getStatement.get(id) as TodoDBM | undefined;
-    if (!todoDBM || !todoDBM.id) {
-      throw new DatabaseError<number>(
-        'Error: there is no Todo that matches the provided ID',
-        id
-      );
-    }
-    const todo: Todo = { ...todoDBM, done: !!todoDBM };
-    return todo;
   }
 }
 
