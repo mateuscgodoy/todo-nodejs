@@ -130,6 +130,35 @@ export default class QueryDatabase {
     }) as Todo[];
     return todos;
   }
+
+  updateTodo(todo: Todo) {
+    const todoDBM: TodoDBM = { ...todo, done: todo.done ? 1 : 0 };
+    const updateStatement = this.instance.prepare(
+      `UPDATE todos SET title=?, assignedTo=?, done=? WHERE id=?;`
+    );
+    const { changes } = updateStatement.run(
+      todoDBM.title,
+      todoDBM.assignedTo,
+      todoDBM.done,
+      todoDBM.id
+    );
+
+    if (!changes) {
+      throw new DatabaseError<Todo>(
+        'Error: the Todo provided is invalid',
+        todo
+      );
+    }
+  }
+
+  deleteTodo(id: number) {
+    const deleteStatement = this.instance.prepare(
+      'DELETE FROM todos WHERE id=?;'
+    );
+    const { changes } = deleteStatement.run(id);
+    if (!changes)
+      throw new DatabaseError<number>('Error: the provided ID is invalid', id);
+  }
 }
 
 export class DatabaseError<T = unknown> extends Error {
