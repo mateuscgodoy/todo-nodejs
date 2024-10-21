@@ -84,23 +84,41 @@ export default class QueryDatabase {
   }
 
   getTodos(
-    filters: QueryTodo = { title: '', assignedTo: '', limit: 10, offset: 0 }
+    filters: QueryTodo = { title: '', assignedTo: '', limit: 0, offset: 0 }
   ) {
     let sql = 'SELECT * FROM todos WHERE 1=1';
-    const { title, assignedTo } = filters;
+    const { title, assignedTo, id, limit, offset } = filters;
     const params = [];
-    if (title) {
-      sql += ' AND title LIKE ?';
-      params.push(`%${title}%`);
-    }
-    if (assignedTo) {
-      sql += ' AND assignedTo LIKE ?';
-      params.push(`%${assignedTo}%`);
-    }
-    if (filters.id) {
+
+    if (id) {
       sql += ' AND id=?';
-      params.push(filters.id);
+      params.push(id);
+    } else {
+      if (title) {
+        sql += ' AND title LIKE ?';
+        params.push(`%${title}%`);
+      }
+      if (assignedTo) {
+        sql += ' AND assignedTo LIKE ?';
+        params.push(`%${assignedTo}%`);
+      }
+      if (limit) {
+        sql += ' LIMIT ?';
+        params.push(limit);
+
+        if (offset) {
+          sql += ' OFFSET ?';
+          params.push(offset);
+        }
+      } else {
+        if (offset) {
+          throw new DatabaseError(
+            'Error: Offset can not be set without a valid limit'
+          );
+        }
+      }
     }
+
     const getStatement = this.instance.prepare(sql);
     const dbmTodos = getStatement.all(...params) as TodoDBM[];
 
