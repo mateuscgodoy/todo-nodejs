@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 
-import QueryDatabase from './queryDatabase.js';
+import QueryDatabase, { DatabaseError } from './queryDatabase.js';
 
 export default class TodoRouter {
   private _router = express.Router();
@@ -10,6 +10,7 @@ export default class TodoRouter {
     this.db = db;
     this._router.post('', this.postTodoRoute.bind(this));
     this._router.get('', this.getAllTodosRoute.bind(this));
+    this._router.get('/:id', this.getTodoById.bind(this));
   }
 
   get router() {
@@ -107,5 +108,72 @@ export default class TodoRouter {
   getAllTodosRoute(req: Request, res: Response) {
     const todos = this.db.getAllTodos();
     res.status(200).send(todos);
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   get:
+   *     summary: Get a Todo by ID
+   *     description: Retrieve a specific Todo item by its unique ID.
+   *     tags: [Todos]
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         schema:
+   *           type: integer
+   *         required: true
+   *         description: The ID of the Todo to retrieve
+   *         example: 1
+   *     responses:
+   *       200:
+   *         description: The requested Todo
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/Todo'
+   *       400:
+   *         description: Invalid ID supplied
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                 id:
+   *                   type: integer
+   *                   description: The invalid ID provided
+   *       404:
+   *         description: Todo not found
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *                 id:
+   *                   type: integer
+   *                   description: The invalid ID provided
+   */
+  getTodoById(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res
+        .status(400)
+        .send({ message: 'The ID provided is invalid', id });
+    }
+    try {
+      const todo = this.db.getTodoById(id);
+      res.status(200).send(todo);
+    } catch (error) {
+      if (error instanceof DatabaseError) {
+        res.status(404).send({
+          message: 'No Todo was found for the provided id.',
+          id,
+        });
+      }
+    }
   }
 }
