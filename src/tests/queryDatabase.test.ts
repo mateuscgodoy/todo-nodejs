@@ -147,4 +147,55 @@ describe('QueryDatabase class', () => {
       });
     });
   });
+
+  describe('updateTodo test', () => {
+    beforeEach(() => {
+      db.insertTodo({ title: 'Buy milk', assignedTo: 'Bobby' });
+    });
+
+    it('update a todo given valid data', () => {
+      let todo = db.getTodos({ id: 1 })[0];
+      todo.done = true;
+      db.updateTodo(todo);
+      todo = db.getTodos({ id: 1 })[0];
+
+      assert.equal(todo.done, true);
+    });
+
+    it('throws DatabaseError if Todo to update is invalid', () => {
+      const todo: Todo = {
+        id: 20,
+        title: 'A not registered todo',
+        assignedTo: 'ChatGPT',
+        done: true,
+      };
+
+      assert.throws(
+        () => {
+          db.updateTodo(todo);
+        },
+        DatabaseError,
+        'Error: the Todo provided is invalid'
+      );
+    });
+  });
+
+  describe('deleteTodo test', () => {
+    it('delete a todo given a valid ID', () => {
+      db.insertTodo({ title: 'A valid Todo', assignedTo: 'Bobby' });
+      db.deleteTodo(1);
+      const todo = db.getTodos({ id: 1 })[0];
+      assert.equal(todo, undefined);
+    });
+
+    it('throws a DatabaseError if the given ID is invalid', () => {
+      assert.throws(
+        () => {
+          db.deleteTodo(100);
+        },
+        DatabaseError,
+        'Error: the provided ID is invalid'
+      );
+    });
+  });
 });
