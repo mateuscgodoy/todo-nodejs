@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 
-import QueryDatabase, { DatabaseError } from './queryDatabase.js';
+import QueryDatabase, { DatabaseError, Todo } from './queryDatabase.js';
 
 export default class TodoRouter {
   private _router = express.Router();
@@ -11,6 +11,8 @@ export default class TodoRouter {
     this._router.post('', this.postTodoRoute.bind(this));
     this._router.get('', this.getAllTodosRoute.bind(this));
     this._router.get('/:id', this.getTodoById.bind(this));
+    this._router.patch('', this.updateTodo.bind(this));
+    this._router.delete('/:id', this.deleteTodo.bind(this));
   }
 
   get router() {
@@ -172,5 +174,95 @@ export default class TodoRouter {
       });
     }
     res.status(200).send(todo);
+  }
+
+  /**
+   * @swagger
+   * /todos:
+   *   patch:
+   *     summary: Update a todo
+   *     description: Update a todo from the database.
+   *     tags: [Todos]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               todo:
+   *                 $ref: '#/components/schemas/Todo'
+   *     responses:
+   *       202:
+   *         description: Todo updated with success
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   *       400:
+   *         description: Invalid input
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 message:
+   *                   type: string
+   */
+  updateTodo(req: Request, res: Response) {
+    const { todo } = req.body;
+
+    try {
+      this.db.updateTodo(todo);
+      res.status(200).send({ message: 'Todo updated with success' });
+    } catch (error) {
+      if (error instanceof DatabaseError) {
+        res.status(400).send({ message: 'The informed Todo is invalid' });
+      }
+    }
+  }
+
+  /**
+   * @swagger
+   * /todos/{id}:
+   *   delete:
+   *     summary: Delete a todo item
+   *     tags:
+   *       - Todos
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         description: ID of the todo item
+   *         schema:
+   *           type: integer
+   *     responses:
+   *       204:
+   *         description: Todo item deleted successfully
+   *       404:
+   *         description: Todo item not found
+   *       400:
+   *         description: Bad ID input provided
+   */
+  deleteTodo(req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (!id && id !== 0) {
+      res.status(400).send({
+        message: 'The type of the provided ID is invalid. Must be a number',
+      });
+    }
+
+    try {
+      this.db.deleteTodo(id);
+      res.status(204).send({ message: 'Todo was deleted with success' });
+    } catch (error) {
+      if (error instanceof DatabaseError) {
+        res.status(404).send({ message: 'Todo to delete was not found' });
+      }
+    }
   }
 }
