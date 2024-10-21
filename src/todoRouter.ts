@@ -106,7 +106,7 @@ export default class TodoRouter {
    *                 $ref: '#/components/schemas/Todo'
    */
   getAllTodosRoute(req: Request, res: Response) {
-    const todos = this.db.getAllTodos();
+    const todos = this.db.getTodos();
     res.status(200).send(todos);
   }
 
@@ -164,16 +164,13 @@ export default class TodoRouter {
         .status(400)
         .send({ message: 'The ID provided is invalid', id });
     }
-    try {
-      const todo = this.db.getTodoById(id);
-      res.status(200).send(todo);
-    } catch (error) {
-      if (error instanceof DatabaseError) {
-        res.status(404).send({
-          message: 'No Todo was found for the provided id.',
-          id,
-        });
-      }
+    const todo = this.db.getTodos({ id });
+    if (!todo) {
+      return res.status(404).send({
+        message: 'No Todo was found for the provided id.',
+        id,
+      });
     }
+    res.status(200).send(todo);
   }
 }
