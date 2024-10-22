@@ -166,7 +166,7 @@ export default class TodoRouter {
         .status(400)
         .send({ message: 'The ID provided is invalid', id });
     }
-    const todo = this.db.getTodos({ id });
+    const todo = this.db.getTodos({ id })[0];
     if (!todo) {
       return res.status(404).send({
         message: 'No Todo was found for the provided id.',
