@@ -1,4 +1,4 @@
-import { before, beforeEach, describe, it } from 'node:test';
+import { beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert';
 
 import QueryDatabase, { DatabaseError, Todo } from '../queryDatabase.js';
