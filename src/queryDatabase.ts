@@ -13,11 +13,13 @@ export type QueryTodo = {
 };
 
 export type InputTodo = {
-  title: string;
-  assignedTo: string;
+  title?: string;
+  assignedTo?: string;
+  done?: boolean;
 };
 
 export type Todo = {
+  [key: string]: string | number | boolean;
   id: number;
   title: string;
   assignedTo: string;
@@ -132,6 +134,13 @@ export default class QueryDatabase {
   }
 
   updateTodo(todo: Todo) {
+    if (!todo.assignedTo || !todo.title || !todo.id) {
+      throw new DatabaseError<Todo>(
+        'Error: the Todo provided is invalid',
+        todo
+      );
+    }
+
     const todoDBM: TodoDBM = { ...todo, done: todo.done ? 1 : 0 };
     const updateStatement = this.instance.prepare(
       `UPDATE todos SET title=?, assignedTo=?, done=? WHERE id=?;`
