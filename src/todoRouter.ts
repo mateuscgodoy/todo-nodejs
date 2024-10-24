@@ -1,6 +1,12 @@
 import express, { Request, Response } from 'express';
 
 import QueryDatabase, { DatabaseError, Todo } from './queryDatabase.js';
+import {
+  isValidTodoId,
+  isValidPostTodo,
+  isValidUpdateTodo,
+} from './validators.js';
+import { catchErrors } from './catchErrorsMiddleware.js';
 
 export default class TodoRouter {
   private _router = express.Router();
@@ -8,11 +14,32 @@ export default class TodoRouter {
 
   constructor(db: QueryDatabase) {
     this.db = db;
-    this._router.post('', this.postTodoRoute.bind(this));
+    this._router.post(
+      '',
+      isValidPostTodo,
+      catchErrors,
+      this.postTodoRoute.bind(this)
+    );
     this._router.get('', this.getAllTodosRoute.bind(this));
-    this._router.get('/:id', this.getTodoById.bind(this));
-    this._router.patch('', this.updateTodo.bind(this));
-    this._router.delete('/:id', this.deleteTodo.bind(this));
+    this._router.get(
+      '/:id',
+      isValidTodoId,
+      catchErrors,
+      this.getTodoById.bind(this)
+    );
+    this._router.patch(
+      '/:id',
+      isValidTodoId,
+      isValidUpdateTodo,
+      catchErrors,
+      this.updateTodo.bind(this)
+    );
+    this._router.delete(
+      '/:id',
+      isValidTodoId,
+      catchErrors,
+      this.deleteTodo.bind(this)
+    );
   }
 
   get router() {
@@ -64,15 +91,9 @@ export default class TodoRouter {
    *                   type: string
    */
   postTodoRoute(req: Request, res: Response) {
-    const { title, assignedTo } = req.body;
-    if (!title || !assignedTo) {
-      return res
-        .status(400)
-        .send({ message: 'Please provide a title and an assigned person' });
-    }
-
+    const { title, assignedTo } = req.body.todo;
     this.db.insertTodo({ title, assignedTo });
-    res
+    return res
       .status(201)
       .send({ message: 'Todo created with success', title, assignedTo });
   }
@@ -108,6 +129,8 @@ export default class TodoRouter {
    *                 $ref: '#/components/schemas/Todo'
    */
   getAllTodosRoute(req: Request, res: Response) {
+    // TODO: add filtering for Limit, Offset, Title and Assigned To query parameters
+
     const todos = this.db.getTodos();
     res.status(200).send(todos);
   }
@@ -161,11 +184,6 @@ export default class TodoRouter {
    */
   getTodoById(req: Request, res: Response) {
     const id = Number(req.params.id);
-    if (!id) {
-      return res
-        .status(400)
-        .send({ message: 'The ID provided is invalid', id });
-    }
     const todo = this.db.getTodos({ id })[0];
     if (!todo) {
       return res.status(404).send({
@@ -214,13 +232,27 @@ export default class TodoRouter {
    */
   updateTodo(req: Request, res: Response) {
     const { todo } = req.body;
+    const id = Number(req.params.id);
+    let savedTodo = this.db.getTodos({ id })[0];
+    if (!savedTodo) {
+      return res.status(404).send({
+        message: 'No Todo was found for the provided id.',
+        id,
+      });
+    }
+
+    const updatedTodo = { ...savedTodo, ...todo };
 
     try {
-      this.db.updateTodo(todo);
-      res.status(200).send({ message: 'Todo updated with success' });
+      this.db.updateTodo(updatedTodo);
+      res
+        .status(200)
+        .send({ message: 'Todo updated with success', todo: updatedTodo });
     } catch (error) {
       if (error instanceof DatabaseError) {
         res.status(400).send({ message: 'The informed Todo is invalid' });
+      } else {
+        res.status(500).send({ message: 'Internal server error', error });
       }
     }
   }
