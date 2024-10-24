@@ -128,9 +128,38 @@ describe('TodoRouter', () => {
         'No Todo was found for the provided id.'
       );
     });
+
+    it('fails when an invalid ID is provided with 400 status and an error message', async () => {
+      const response = await request.patch('/todos/bacon');
+
+      assert.equal(response.status, 400);
+      assert.equal(response.body.message, 'The ID parameter must be a number');
+    });
   });
 
-  // describe('DELETE /todos/:id', () => {
-  //   // TODO: Implement delete integration tests
-  // });
+  describe('DELETE /todos/:id', () => {
+    it('successfully delete a Todo if the correct ID', async () => {
+      const response = await request.delete('/todos/1').send();
+
+      assert.equal(response.status, 200);
+      assert.equal(response.body.message, 'Todo was deleted with success');
+    });
+
+    it('fails if there is no ID for the provided Todo with 404 status and error message', async () => {
+      const response = await request.delete('/todos/-1').send();
+
+      assert.equal(response.status, 404);
+      assert.equal(
+        response.body.message,
+        'No Todo was found for the provided id'
+      );
+    });
+
+    it('fails when an invalid ID is provided with 400 status and an error message', async () => {
+      const response = await request.delete('/todos/bacon');
+
+      assert.equal(response.status, 400);
+      assert.equal(response.body.message, 'The ID parameter must be a number');
+    });
+  });
 });
