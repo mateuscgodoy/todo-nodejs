@@ -7,6 +7,7 @@ import {
   isValidUpdateTodo,
 } from './validators.js';
 import { catchErrors } from './catchErrorsMiddleware.js';
+import { getTodoById } from './getTodoByIdMiddleware.js';
 
 export default class TodoRouter {
   private _router = express.Router();
@@ -25,6 +26,7 @@ export default class TodoRouter {
       '/:id',
       isValidTodoId,
       catchErrors,
+      getTodoById(this.db),
       this.getTodoById.bind(this)
     );
     this._router.patch(
@@ -32,12 +34,14 @@ export default class TodoRouter {
       isValidTodoId,
       isValidUpdateTodo,
       catchErrors,
+      getTodoById(this.db),
       this.updateTodo.bind(this)
     );
     this._router.delete(
       '/:id',
       isValidTodoId,
       catchErrors,
+      getTodoById(this.db),
       this.deleteTodo.bind(this)
     );
   }
@@ -183,15 +187,8 @@ export default class TodoRouter {
    *                   description: The invalid ID provided
    */
   getTodoById(req: Request, res: Response) {
-    const id = Number(req.params.id);
-    const todo = this.db.getTodos({ id })[0];
-    if (!todo) {
-      return res.status(404).send({
-        message: 'No Todo was found for the provided id.',
-        id,
-      });
-    }
-    res.status(200).send(todo);
+    const { dbTodo } = req.body;
+    res.status(200).send({ todo: dbTodo });
   }
 
   /**
@@ -231,17 +228,8 @@ export default class TodoRouter {
    *                   type: string
    */
   updateTodo(req: Request, res: Response) {
-    const { todo } = req.body;
-    const id = Number(req.params.id);
-    let savedTodo = this.db.getTodos({ id })[0];
-    if (!savedTodo) {
-      return res.status(404).send({
-        message: 'No Todo was found for the provided id.',
-        id,
-      });
-    }
-
-    const updatedTodo = { ...savedTodo, ...todo };
+    const { todo, dbTodo } = req.body;
+    const updatedTodo = { ...dbTodo, ...todo };
 
     try {
       this.db.updateTodo(updatedTodo);
@@ -281,13 +269,6 @@ export default class TodoRouter {
    */
   deleteTodo(req: Request, res: Response) {
     const id = Number(req.params.id);
-    let savedTodo = this.db.getTodos({ id })[0];
-    if (!savedTodo) {
-      return res.status(404).send({
-        message: 'No Todo was found for the provided id',
-        id,
-      });
-    }
 
     try {
       this.db.deleteTodo(id);

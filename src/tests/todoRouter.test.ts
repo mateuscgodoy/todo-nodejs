@@ -28,9 +28,10 @@ describe('TodoRouter', () => {
   describe('GET /todos/:id', () => {
     it('returns the specific todo if the ID is valid', async () => {
       const response = await request.get('/todos/1');
+      const { todo } = response.body;
 
       assert.equal(response.status, 200);
-      assert.equal(response.body.title, testTodos[0].title);
+      assert.equal(todo.title, testTodos[0].title);
     });
 
     it('fails when a inexistent ID is provided with 404 status and an error message', async () => {
@@ -39,7 +40,7 @@ describe('TodoRouter', () => {
       assert.equal(response.status, 404);
       assert.equal(
         response.body.message,
-        'No Todo was found for the provided id.'
+        'No Todo was found for the provided id'
       );
     });
 
@@ -125,7 +126,7 @@ describe('TodoRouter', () => {
       assert.equal(response.status, 404);
       assert.equal(
         response.body.message,
-        'No Todo was found for the provided id.'
+        'No Todo was found for the provided id'
       );
     });
 
